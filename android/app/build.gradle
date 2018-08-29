@@ -17,9 +17,25 @@ if (localPropertiesFile.exists()) {
 
 def njobs = getProperty("j")
 
+task makeLocalization (type: Exec) {
+    workingDir './../..'
+    commandLine 'make', 'localization', 'LANGUAGES=all'
+}
+
+task makeLuaBindings (type: Exec) {
+    workingDir './jni/src/lua'
+    commandLine 'lua', 'generate_bindings.lua'
+}
+
 android {
     compileSdkVersion 26
     buildToolsVersion "28.0.1"
+
+    exec {
+        workingDir './../..'
+        commandLine 'make', 'version'
+    }
+
     defaultConfig {
         minSdkVersion 14
         targetSdkVersion 26
@@ -106,6 +122,9 @@ android {
         }
     }
 }
+
+preBuild.dependsOn makeLocalization
+preBuild.dependsOn makeLuaBindings
 
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
