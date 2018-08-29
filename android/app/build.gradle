@@ -7,12 +7,22 @@ else {
     apply plugin: 'com.android.library'
 }
 
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader('UTF-8') { reader ->
+        localProperties.load(reader)
+    }
+}
+
+def njobs = getProperty("j")
+
 android {
-    compileSdkVersion 24
-    buildToolsVersion "26.0.1"
+    compileSdkVersion 26
+    buildToolsVersion "28.0.1"
     defaultConfig {
         minSdkVersion 14
-        targetSdkVersion 24
+        targetSdkVersion 26
         versionCode 1
         versionName new File('app/jni/src/version.h').text.split("\"")[1]
         if (buildAsApplication) {
@@ -25,15 +35,48 @@ android {
 	}
     externalNativeBuild {
         ndkBuild {
-            arguments "APP_PLATFORM=android-14", "-j8"
+            arguments "APP_PLATFORM=android-16", "-j$njobs"
         }
     }
     testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+    signingConfigs {
+        if( localProperties.getProperty('storeFile') != null ) {
+            if( file(localProperties.getProperty('storeFile')).exists() ) {
+                release {
+                    storeFile file(localProperties.getProperty("storeFile"))
+                    storePassword localProperties.getProperty("storePassword")
+                    keyAlias localProperties.getProperty("keyAlias")
+                    keyPassword localProperties.getProperty("keyPassword")
+                }
+            } else {
+                throw new GradleException("Keystore file " + localProperties.getProperty("storeFile") + " was not found.\n")
+            }
+        }
     }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if( signingConfigs.hasProperty("release") ) {
+                signingConfig signingConfigs.release
+            }
+            externalNativeBuild {
+                ndkBuild {
+                    cFlags "-DNDEBUG", "-DRELEASE", "-Os"
+                }
+            }
+        }
+        
+        debug {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        
+            externalNativeBuild {
+                ndkBuild {
+
+                }
+            }
         }
     }
     if (!project.hasProperty('EXCLUDE_NATIVE_LIBS')) {
