@@ -27,6 +27,11 @@ task makeLuaBindings (type: Exec) {
     commandLine 'lua', 'generate_bindings.lua'
 }
 
+task unzipDeps (type: Exec) {
+    workingDir '.'
+    commandLine 'unzip', '-nq', 'deps.zip'
+}
+
 android {
     compileSdkVersion 26
     buildToolsVersion "28.0.1"
@@ -125,6 +130,7 @@ android {
 
 preBuild.dependsOn makeLocalization
 preBuild.dependsOn makeLuaBindings
+preBuild.dependsOn unzipDeps
 
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
