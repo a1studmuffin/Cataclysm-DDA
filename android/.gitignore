@@ -8,11 +8,10 @@
 /captures
 .externalNativeBuild
 !config/
-/app/jni/SDL2
-/app/jni/SDL2_ttf
-/app/jni/SDL2_mixer
-/app/jni/SDL2_image
-/app/jni/lua
 /app/jni/libintl-lite
+/app/jni/lua
 /app/jni/mpg-123
-/app/deps/
+/app/jni/SDL2
+/app/jni/SDL2_image
+/app/jni/SDL2_mixer
+/app/jni/SDL2_ttf
