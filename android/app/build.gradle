@@ -1,3 +1,5 @@
+import org.gradle.internal.os.OperatingSystem;
+
 def buildAsLibrary = project.hasProperty('BUILD_AS_LIBRARY');
 def buildAsApplication = !buildAsLibrary
 if (buildAsApplication) {
@@ -17,28 +19,60 @@ if (localPropertiesFile.exists()) {
 
 def njobs = getProperty("j")
 
-task makeLocalization (type: Exec) {
-    workingDir './../..'
-    commandLine 'make', 'localization', 'LANGUAGES=all'
+task unzipDeps(type: Copy) {
+    def zipFile = new File('./deps.zip')
+    def outputDir = new File('.')
+    from zipTree(zipFile)
+    into outputDir
 }
 
-task makeLuaBindings (type: Exec) {
-    workingDir './jni/src/lua'
-    commandLine 'lua', 'generate_bindings.lua'
-}
+preBuild.dependsOn unzipDeps
 
-task unzipDeps (type: Exec) {
-    workingDir '.'
-    commandLine 'unzip', '-nq', 'deps.zip'
+switch(OperatingSystem.current()) {
+    case OperatingSystem.LINUX:
+        task makeLocalization(type: Exec) {
+            workingDir './../..'
+            commandLine 'make', 'localization', 'LANGUAGES=all'
+        }
+
+        task makeLuaBindings(type: Exec) {
+            workingDir './jni/src/lua'
+            commandLine 'lua', 'generate_bindings.lua'
+        }
+
+        preBuild.dependsOn makeLocalization
+        preBuild.dependsOn makeLuaBindings
+        break
+    case OperatingSystem.WINDOWS:
+        task makeLocalization(type: Exec) {
+            workingDir './../..'
+            commandLine 'sh.exe', 'android/app/makelocalizations.sh'
+        }
+
+        task makeLuaBindings(type: Exec) {
+            workingDir './../../src/lua'
+            commandLine 'lua', 'generate_bindings.lua'
+        }
+        unzipDeps.dependsOn makeLocalization
+        preBuild.dependsOn makeLuaBindings
+        break
 }
 
 android {
     compileSdkVersion 26
     buildToolsVersion "28.0.1"
 
-    exec {
-        workingDir './../..'
-        commandLine 'make', 'version'
+    if(OperatingSystem.current().isLinux()) {
+        exec {
+            workingDir './../..'
+            commandLine 'make', 'version'
+        }
+    }
+    if(OperatingSystem.current().isWindows()) {
+        exec {
+            workingDir './../..'
+            commandLine 'sh.exe', '-c', 'make version'
+        }
     }
 
     defaultConfig {
@@ -133,9 +167,5 @@ preBuild.dependsOn makeLuaBindings
 preBuild.dependsOn unzipDeps
 
 dependencies {
-    compile fileTree(include: ['*.jar'], dir: 'libs')
-    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
-        exclude group: 'com.android.support', module: 'support-annotations'
-    })
-    testCompile 'junit:junit:4.12'
+    api fileTree(include: ['*.jar'], dir: 'libs')
 }
